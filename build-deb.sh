@@ -33,10 +33,11 @@ Depends: python3, python3-pil, python3-numpy, sudo, apt, dpkg
 Section: utils
 Priority: optional
 Installed-Size: $(du -sk "$ROOT/usr" | cut -f1)
-Description: Update installed AppStore apps on CardputerZero
- Lists the AppStore apps installed on the device with the installed and the
- latest version from the official store registry, and updates the picked
- ones, or all of them, after checking each package's SHA-256.
+Description: Check for updates and update all AppStore apps in one click
+ Checks the AppStore apps installed on the CardputerZero against the
+ official store registry, shows the installed and the latest version, and
+ installs every update in one click (or only the picked apps), after
+ checking each package's SHA-256.
 CTRL
 
 dpkg-deb --root-owner-group --build "$ROOT" "${PKG}_${VERSION}_all.deb"

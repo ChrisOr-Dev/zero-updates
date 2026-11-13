@@ -1,13 +1,14 @@
 # Updates for CardputerZero
 
-The CardputerZero AppStore updates one app at a time from its detail page and never tells you which apps are out of date. Updates lists every store app installed on the device with the installed and the latest version, and updates the ones you pick, or all of them, from the official store registry.
+**Check for updates and install them all in one click.** The CardputerZero AppStore never tells you which apps are out of date, and updates one app at a time from its detail page. Updates checks every store app installed on the device against the official store registry, shows the installed and the latest version, and installs every update with one press of ENTER, or just the ones you pick.
 
 ![App list](screenshots/list.png) ![Updating](screenshots/progress.png)
 
 [Demo video](screenshots/demo.mp4) (22 s, recorded on the device)
 
-- **List**: installed store apps, apps with an update first (`installed > latest`), the rest marked up to date. When any app has an update, an **Update all** button heads the list and is selected on start, so ENTER updates everything. The registry is fetched on start; without network the last fetched copy is used.
-- **Update**: each package is downloaded from the registry URL and checked against the registry's size and SHA-256 and the expected package name and version. An `apt-get` dry run comes first: if installing would remove any other package (for example a library another app links against), that app is skipped and the reason shown.
+- **Check for updates**: runs on start (R checks again) with a progress bar. Installed store apps are listed with an update first (`installed > latest`), the rest marked up to date. Without network the last fetched registry is used.
+- **One-click update**: when any app has an update, an **Update all** button heads the list and is selected on start, so one ENTER (plus the sudo password) installs every update. To update only some apps, tick them with SPACE.
+- **Safe install**: each package is downloaded from the registry URL and checked against the registry's size and SHA-256 and the expected package name and version. An `apt-get` dry run comes first: if installing would remove any other package (for example a library another app links against), that app is skipped and the reason shown.
 - **Root**: installing needs root. Like the AppStore, the app asks for the `pi` user's sudo password once per batch (not asked when sudo needs none). It is checked with `sudo -v` and dropped when the batch ends; it is never stored or passed to apt.
 - The AppStore's own record of installed versions is updated too, so the store shows the new version.
 
