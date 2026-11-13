@@ -33,7 +33,7 @@ Build the package on the device:
 
 ```sh
 sh build-deb.sh "Your Name <you@example.com>"
-sudo dpkg -i zero-updates_1.0.0_all.deb
+sudo dpkg -i zero-updates_1.0.1_all.deb
 ```
 
 For development, copy this folder to `~/zero-updates` on the device and run `sudo sh ~/zero-updates/install.sh` to register it with the launcher.
