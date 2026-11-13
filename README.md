@@ -7,6 +7,7 @@
 [Demo video](screenshots/demo.mp4) (22 s, recorded on the device)
 
 - **Check for updates**: runs on start (R checks again) with a progress bar. Installed store apps are listed with an update first (`installed > latest`), the rest marked up to date. Without network the last fetched registry is used.
+- **Hand-installed apps**: a store app installed by copying files or by a script (a launcher entry in `/usr/share/APPLaunch` that no package owns) has no known version. It is listed as `manual > latest` and counts as an update, so installing the store package puts it under package management.
 - **One-click update**: when any app has an update, an **Update all** button heads the list and is selected on start, so one ENTER (plus the sudo password) installs every update. To update only some apps, tick them with SPACE.
 - **Safe install**: each package is downloaded from the registry URL and checked against the registry's size and SHA-256 and the expected package name and version. An `apt-get` dry run comes first: if installing would remove any other package (for example a library another app links against), that app is skipped and the reason shown.
 - **Root**: installing needs root. Like the AppStore, the app asks for the `pi` user's sudo password once per batch (not asked when sudo needs none). It is checked with `sudo -v` and dropped when the batch ends; it is never stored or passed to apt.

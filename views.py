@@ -37,6 +37,11 @@ def progress_bar(d, box, pct, color=ACCENT):
                     fill=color)
 
 
+def old_color(row):
+    """Installed-version color: amber for an app installed by hand (no version)."""
+    return WARN if row.get('manual') else DIM
+
+
 def list_items(rows):
     """What the list shows: an 'Update all' button first when any app has an update."""
     n = sum(r['update'] for r in rows)
@@ -92,7 +97,7 @@ def render_list(rows, sel, top, picked, status, check=None, empty=None):
             x = W - 8 - d.textlength(new, font=F_BOLD)
             d.text((x, cy), new, font=F_BOLD, fill=ACCENT, anchor='lm')
             x -= d.textlength(old, font=F_SMALL)
-            d.text((x, cy), old, font=F_SMALL, fill=DIM, anchor='lm')
+            d.text((x, cy), old, font=F_SMALL, fill=old_color(row), anchor='lm')
         else:
             check_mark(d, 8, cy - 5, GREEN)
             x = W - 8 - d.textlength(row['installed'], font=F_SMALL)
@@ -121,7 +126,7 @@ def render_confirm(apps, need_password, typed, note):
         x = W - 8 - d.textlength(new, font=F_BOLD_SMALL)
         d.text((x, y), new, font=F_BOLD_SMALL, fill=ACCENT)
         x -= d.textlength(a['installed'] + ' > ', font=F_SMALL)
-        d.text((x, y), a['installed'] + ' > ', font=F_SMALL, fill=DIM)
+        d.text((x, y), a['installed'] + ' > ', font=F_SMALL, fill=old_color(a))
         d.text((8, y), clip(d, a['title'], F_SMALL, x - 16), font=F_SMALL, fill=FG)
         y += 15
     if len(shown) < len(apps):

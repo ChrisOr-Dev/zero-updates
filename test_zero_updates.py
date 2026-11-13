@@ -34,12 +34,41 @@ class TestRegistry(unittest.TestCase):
                          ['alpha', 'beta', 'gamma'])
 
     def test_scan_lists_installed_with_updates_first(self):
-        with mock.patch.object(registry, 'newer', fake_newer):
+        with mock.patch.object(registry, 'newer', fake_newer), \
+                mock.patch.object(registry, 'sideloaded', return_value=set()):
             rows = registry.scan(REG, {'gamma': '0.9', 'alpha': '1.1.0', 'beta': '2.0',
                                        'pending': '0.1', 'other': '1'})
         self.assertEqual([(r['package'], r['update']) for r in rows],
                          [('gamma', True), ('alpha', False), ('beta', False)])
         self.assertEqual(rows[0]['installed'], '0.9')
+
+    def test_scan_lists_sideloaded_apps_as_manual_updates(self):
+        with mock.patch.object(registry, 'newer', fake_newer), \
+                mock.patch.object(registry, 'sideloaded', return_value={'beta'}) as side:
+            rows = registry.scan(REG, {'alpha': '1.1.0'})
+        side.assert_called_once_with(['beta', 'gamma'])
+        self.assertEqual([(r['package'], r['installed'], r['update'], r.get('manual', False))
+                          for r in rows],
+                         [('beta', 'manual', True, True), ('alpha', '1.1.0', False, False)])
+
+    def test_sideloaded_needs_a_launcher_entry_dpkg_does_not_own(self):
+        with tempfile.TemporaryDirectory() as root:
+            os.makedirs(os.path.join(root, 'applications'))
+            os.makedirs(os.path.join(root, 'bin'))
+            for name in ('applications/Zero_News.desktop', 'bin/zero-stocks',
+                         'applications/music.desktop', 'applications/beta.desktop.orig'):
+                open(os.path.join(root, name), 'w').close()
+
+            def owned(paths):
+                return any(p.endswith('music.desktop') for p in paths)
+
+            with mock.patch.object(registry, 'dpkg_owned', side_effect=owned):
+                found = registry.sideloaded(['zero-news', 'zero-stocks', 'music', 'beta',
+                                             'gamma'], root)
+        self.assertEqual(found, {'zero-news', 'zero-stocks'})
+
+    def test_sideloaded_without_launcher_dir(self):
+        self.assertEqual(registry.sideloaded(['alpha'], '/nonexistent/launcher'), set())
 
     def test_installed_versions_parses_dpkg_query(self):
         out = 'alpha\tii \t1.0\nbeta:arm64\tii \t2.0\ngone\trc \t1.0\n'
