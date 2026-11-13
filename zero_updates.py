@@ -16,6 +16,7 @@ import time
 
 import installer
 import keys
+import net
 import registry
 import views
 from theme import DIM, FAINT, GREEN, H, RED, W, WARN, ACCENT, F_BOLD_SMALL
@@ -61,7 +62,10 @@ class App:
             return
 
         def work():
-            self.checker.check()
+            try:
+                self.checker.check()
+            except Exception as e:
+                self.checker.error = str(e) or type(e).__name__
             names = {r['package'] for r in self.rows if r['update']}
             self.picked &= names
             self.checking = False
@@ -181,13 +185,17 @@ class App:
                                         self.note)
         if self.view == 'progress':
             return views.render_progress(self.job.jobs, self.job.finished, now)
-        return views.render_list(self.rows, self.sel, self.top, self.picked, self.status(now))
+        c = self.checker
+        check = (c.stage, c.pct) if self.checking else None
+        empty = ('Could not reach the store - R to retry', RED) if c.error else None
+        return views.render_list(self.rows, self.sel, self.top, self.picked, self.status(now),
+                                 check, empty)
 
     def frame_key(self, now):
         """Changes whenever the screen may need redrawing."""
         job = self.job.version if self.job else 0
         tick = int(now) if self.view == 'progress' else int(now // 30)
-        return self.version, job, tick
+        return self.version, self.checker.version, job, tick
 
 
 def to_rgb565(img):
@@ -278,6 +286,7 @@ def preview_rows():
 
 
 def main(argv):
+    net.prefer_ipv4()
     if '--check' in argv:
         c = registry.Checker()
         c.check()
@@ -297,7 +306,12 @@ def main(argv):
             app.checker.rows, app.checker.checked_at = preview_rows(), time.time()
         app.picked = {'advancewebui', 'zero-news'}
         now = time.time()
-        if '--confirm' in argv:
+        if '--checking' in argv:
+            app.checking = True
+            app.checker._downloaded(131072, 213323)
+            if '--empty' in argv:
+                app.checker.rows = []
+        elif '--confirm' in argv:
             app.targets = [r for r in app.rows if r['update']]
             app.need_password, app.password = True, 'secret'
             app.view = 'confirm'

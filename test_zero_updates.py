@@ -63,6 +63,36 @@ class TestRegistry(unittest.TestCase):
         self.assertTrue(c.error.startswith('offline'))
 
 
+class TestNet(unittest.TestCase):
+    def test_ipv4_sorted_first(self):
+        import socket
+        import net
+        v6 = (socket.AF_INET6, 1, 6, '', ('::1', 443, 0, 0))
+        v4 = (socket.AF_INET, 1, 6, '', ('1.2.3.4', 443))
+        with mock.patch.object(net, '_getaddrinfo', return_value=[v6, v6, v4]):
+            self.assertEqual(net._ipv4_first('h', 443), [v4, v6, v6])
+
+
+class TestCheckProgress(unittest.TestCase):
+    def test_stages_advance_to_full(self):
+        c = registry.Checker()
+        seen = []
+        c._at = lambda stage, pct: seen.append((stage, round(pct, 2)))
+
+        def fetch(progress):
+            progress(100 * 1024, 200 * 1024)
+            return REG
+
+        with mock.patch.object(registry, 'fetch_registry', side_effect=fetch), \
+                mock.patch.object(registry, 'installed_versions',
+                                  return_value={'alpha': '1.0.0', 'beta': '2.0'}), \
+                mock.patch.object(registry, 'newer', return_value=False):
+            c.check()
+        self.assertEqual(seen[1], ('Downloading store list  100 KB of 200 KB', 0.3))
+        self.assertEqual(seen[-1], ('Comparing versions  2/2', 1.0))
+        self.assertEqual([p for _, p in seen], sorted(p for _, p in seen))
+
+
 class FakeResponse(io.BytesIO):
     headers = {}
 
@@ -217,12 +247,22 @@ class TestApp(unittest.TestCase):
         self.assertEqual(self.app.note[0], 'wrong password')
         self.assertEqual(self.app.password, '')
 
+    def test_failed_check_ends_checking_with_error(self):
+        with mock.patch.object(self.app.checker, 'check', side_effect=RuntimeError('boom')), \
+                mock.patch('threading.Thread') as T:
+            self.app.check()
+            self.assertTrue(self.app.checking)
+            T.call_args[1]['target']()
+        self.assertFalse(self.app.checking)
+        self.assertEqual(self.app.checker.error, 'boom')
+
     def test_esc_in_list_starts_exit_hold(self):
         self.press(keys.K_ESC)
         self.assertIsNotNone(self.hold.start)
 
     def test_renders(self):
-        for argv in ([], ['--confirm'], ['--progress'], ['--progress', '--finished']):
+        for argv in ([], ['--confirm'], ['--progress'], ['--progress', '--finished'],
+                     ['--checking'], ['--checking', '--empty']):
             with tempfile.NamedTemporaryFile(suffix='.png') as f:
                 Z.main(['--preview', f.name] + argv)
         img = views.render_list([], 0, 0, set(), ('', 0))

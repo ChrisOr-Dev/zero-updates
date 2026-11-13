@@ -15,10 +15,21 @@ UA = 'zero-updates/1.0'
 TIMEOUT = 20
 
 
-def fetch_registry(url=REGISTRY_URL):
+def fetch_registry(url=REGISTRY_URL, progress=None):
+    """Download the registry; progress(bytes_read, total_or_0) after each chunk."""
     req = urllib.request.Request(url, headers={'User-Agent': UA})
+    chunks, got = [], 0
     with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
-        data = json.load(r)
+        total = int(r.headers.get('Content-Length') or 0)
+        while True:
+            chunk = r.read(16 * 1024)
+            if not chunk:
+                break
+            chunks.append(chunk)
+            got += len(chunk)
+            if progress:
+                progress(got, total)
+    data = json.loads(b''.join(chunks))
     if not isinstance(data.get('apps'), list):
         raise ValueError('registry has no app list')
     os.makedirs(os.path.dirname(CACHE), exist_ok=True)
@@ -70,38 +81,64 @@ def newer(latest, installed):
     return subprocess.run(['dpkg', '--compare-versions', latest, 'gt', installed]).returncode == 0
 
 
-def scan(registry, installed=None):
+def scan(registry, installed=None, progress=None):
     """Installed store apps, updates first then by title. Each entry adds
-    'installed' and 'update' (bool) to the store_apps() fields."""
+    'installed' and 'update' (bool) to the store_apps() fields.
+    progress(done, total) after each version comparison."""
     installed = installed_versions() if installed is None else installed
+    mine = [a for a in store_apps(registry) if a['package'] in installed]
     rows = []
-    for app in store_apps(registry):
-        have = installed.get(app['package'])
-        if have is None:
-            continue
+    for i, app in enumerate(mine):
+        have = installed[app['package']]
         rows.append(dict(app, installed=have, update=newer(app['version'], have)))
+        if progress:
+            progress(i + 1, len(mine))
     rows.sort(key=lambda r: (not r['update'], r['title'].lower()))
     return rows
 
 
 class Checker:
-    """Loads the registry (falling back to the cache when offline) and scans."""
+    """Loads the registry (falling back to the cache when offline) and scans.
+    While check() runs, stage and pct say how far it got (for a progress bar)."""
+
+    # share of the bar per step: download, read installed packages, compare versions
+    SPLIT = (0.6, 0.7)
 
     def __init__(self):
         self.rows = []
         self.error = None
         self.checked_at = 0
         self.offline = False
+        self.stage = ''
+        self.pct = 0.0
+        self.version = 0
+
+    def _at(self, stage, pct):
+        self.stage, self.pct = stage, pct
+        self.version += 1
+
+    def _downloaded(self, got, total):
+        kb = f'{got // 1024} KB' + (f' of {total // 1024} KB' if total else '')
+        self._at(f'Downloading store list  {kb}',
+                 self.SPLIT[0] * (got / total if total else 0.5))
+
+    def _compared(self, done, total):
+        a, b = self.SPLIT[1], 1.0
+        self._at(f'Comparing versions  {done}/{total}', a + (b - a) * done / max(1, total))
 
     def check(self):
+        self._at('Connecting to the store', 0.0)
         try:
-            registry, at, self.offline = fetch_registry(), time.time(), False
-            self.error = None
+            registry, at = fetch_registry(progress=self._downloaded), time.time()
+            self.offline, self.error = False, None
         except Exception as e:
             registry, at = cached_registry()
             self.offline = True
             self.error = f'offline: {e}' if registry is None else None
             if registry is None:
                 return
-        self.rows = scan(registry)
+        self._at('Reading installed apps', self.SPLIT[0])
+        installed = installed_versions()
+        self._at('Comparing versions', self.SPLIT[1])
+        self.rows = scan(registry, installed, self._compared)
         self.checked_at = at

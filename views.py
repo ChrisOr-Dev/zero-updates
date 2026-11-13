@@ -30,12 +30,29 @@ def check_mark(d, x, y, color):
     d.line([(x, y + 5), (x + 3, y + 8), (x + 9, y + 1)], fill=color, width=2)
 
 
-def render_list(rows, sel, top, picked, status):
+def progress_bar(d, box, pct, color=ACCENT):
+    d.rectangle(box, fill=LINE)
+    if pct > 0:
+        d.rectangle((box[0], box[1], box[0] + (box[2] - box[0]) * min(1, pct), box[3]),
+                    fill=color)
+
+
+def render_list(rows, sel, top, picked, status, check=None, empty=None):
     """rows from registry.scan(); picked: packages ticked for update;
-    status: (text, color) for the header's right side."""
+    status: (text, color) for the header's right side; check: (stage, pct) while
+    checking; empty: (text, color) for an empty list."""
     img, d = frame('Updates', *status)
-    if not rows:
-        d.text((W / 2, (TOP + H - 17) / 2), 'No store apps installed', font=F_TEXT, fill=DIM,
+    mid = (TOP + H - 17) / 2
+    if check and not rows:
+        d.text((W / 2, mid - 14), 'Checking for updates', font=F_BOLD, fill=FG, anchor='mm')
+        progress_bar(d, (24, mid - 2, W - 24, mid + 3), check[1])
+        d.text((W / 2, mid + 16), clip(d, check[0], F_SMALL, W - 24), font=F_SMALL, fill=DIM,
+               anchor='mm')
+    elif check:
+        progress_bar(d, (0, 22, W, 24), check[1])
+    elif not rows:
+        text, col = empty or ('No store apps installed', DIM)
+        d.text((W / 2, mid), clip(d, text, F_TEXT, W - 16), font=F_TEXT, fill=col,
                anchor='mm')
     for i, row in enumerate(rows[top:top + ROWS]):
         y = TOP + i * ROW_H
@@ -67,7 +84,8 @@ def render_list(rows, sel, top, picked, status):
         y0 = TOP + (H - TOP - 18 - h) * top / max(1, len(rows) - ROWS)
         d.rectangle((W - 2, y0, W, y0 + h), fill=FAINT)
     n = sum(r['update'] for r in rows)
-    footer(d, 'SPACE pick  ENTER update  A all  R check' if n else 'R check again')
+    footer(d, 'SPACE pick  ENTER update  A all  R check' if n else
+           'Please wait' if check else 'R check again')
     return img
 
 
