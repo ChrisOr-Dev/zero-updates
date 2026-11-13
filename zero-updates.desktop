@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Updates
+Comment=Update installed AppStore apps, one by one or all at once
+Exec=/usr/share/APPLaunch/bin/zero-updates
+Icon=share/images/zero-updates.png
+Terminal=false
+Categories=Utility;
+StartupNotify=false
