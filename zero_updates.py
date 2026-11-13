@@ -76,8 +76,12 @@ class App:
         self.version += 1
         threading.Thread(target=work, daemon=True).start()
 
+    @property
+    def items(self):
+        return views.list_items(self.rows)
+
     def _scroll(self):
-        n = len(self.rows)
+        n = len(self.items)
         self.sel = max(0, min(self.sel, n - 1))
         self.top = max(0, min(self.top, self.sel, n - views.ROWS))
         if self.sel >= self.top + views.ROWS:
@@ -97,21 +101,26 @@ class App:
         if k == keys.K_ESC:
             hold.press(now)
             return False
-        rows, n = self.rows, len(self.rows)
+        items, n = self.items, len(self.items)
+        cur = items[self.sel] if n else {}
+        updates = [r for r in self.rows if r['update']]
         if k in (keys.K_UP, keys.K_DOWN) and n:
             self.sel = (self.sel + (-1 if k == keys.K_UP else 1)) % n
             self._scroll()
-        elif k == keys.K_SPACE and n and rows[self.sel]['update']:
-            self.picked ^= {rows[self.sel]['package']}
+        elif k == keys.K_SPACE and cur.get('update'):
+            self.picked ^= {cur['package']}
         elif k == keys.K_ENTER and n:
-            targets = [r for r in rows if r['package'] in self.picked]
-            if not targets and rows[self.sel]['update']:
-                targets = [rows[self.sel]]
+            if 'all' in cur:
+                targets = updates
+            else:
+                targets = [r for r in updates if r['package'] in self.picked]
+                if not targets and cur.get('update'):
+                    targets = [cur]
             if not targets:
                 return False
             self._open_confirm(targets)
-        elif k == K_A and any(r['update'] for r in rows):
-            self._open_confirm([r for r in rows if r['update']])
+        elif k == K_A and updates:
+            self._open_confirm(updates)
         elif k == K_R:
             self.check()
         else:

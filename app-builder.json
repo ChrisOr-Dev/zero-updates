@@ -6,7 +6,7 @@
   "description": "Update installed AppStore apps on CardputerZero",
   "store": {
     "summary": "See which installed store apps are out of date and update them, one by one or all at once.",
-    "description": "Lists every AppStore app installed on the device with the installed and the latest version, apps with an update first. Pick apps with SPACE and press ENTER, or press A to update all.\n\nEach package comes from the official store registry and is checked against its size and SHA-256 before installing. A dry run comes first: if an update would remove any other package, it is skipped and the reason shown. Installing needs the pi user's sudo password, asked once per batch and never stored.\n\nKeys: F/X move, SPACE pick, ENTER update, A update all, R check again, hold ESC 3 seconds to exit.",
+    "description": "Lists every AppStore app installed on the device with the installed and the latest version, apps with an update first. Press ENTER on Update all at the top to update everything at once, or pick apps with SPACE and press ENTER.\n\nEach package comes from the official store registry and is checked against its size and SHA-256 before installing. A dry run comes first: if an update would remove any other package, it is skipped and the reason shown. Installing needs the pi user's sudo password, asked once per batch and never stored.\n\nKeys: F/X move, ENTER update, SPACE pick, A update all, R check again, hold ESC 3 seconds to exit.",
     "categories": ["System Tools"],
     "screenshots": ["screenshots/list.png", "screenshots/progress.png", "screenshots/confirm.png"],
     "icon": "packaging/icon.png",

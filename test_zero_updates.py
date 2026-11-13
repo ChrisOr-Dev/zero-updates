@@ -206,19 +206,31 @@ class TestApp(unittest.TestCase):
         for c in codes:
             self.app.handle(c, self.hold, 0)
 
+    def test_update_all_button_is_first_and_selected(self):
+        self.assertEqual(self.app.items[0], {'all': 3})
+        with mock.patch.object(installer, 'sudo_ready', return_value=True):
+            self.press(keys.K_SPACE, keys.K_ENTER)   # SPACE on the button does nothing
+        self.assertEqual(self.app.picked, set())
+        self.assertEqual(len(self.app.targets), 3)
+
+    def test_no_button_without_updates(self):
+        for r in self.app.rows:
+            r['update'] = False
+        self.assertEqual(self.app.items, self.app.rows)
+
     def test_space_picks_only_updatable_rows(self):
-        self.press(keys.K_SPACE, 45, 45, 45, keys.K_SPACE)   # X moves down
+        self.press(45, keys.K_SPACE, 45, 45, 45, keys.K_SPACE)   # X moves down
         self.assertEqual(self.app.picked, {'advancewebui'})
 
     def test_enter_updates_picked_or_current(self):
         with mock.patch.object(installer, 'sudo_ready', return_value=False):
-            self.press(45, keys.K_ENTER)
+            self.press(45, 45, keys.K_ENTER)
         self.assertEqual(self.app.view, 'confirm')
         self.assertEqual([t['package'] for t in self.app.targets], ['meshterm'])
         self.assertTrue(self.app.need_password)
 
     def test_enter_on_current_row_without_update_does_nothing(self):
-        self.app.sel = 4
+        self.app.sel = 5
         self.press(keys.K_ENTER)
         self.assertEqual(self.app.view, 'list')
 

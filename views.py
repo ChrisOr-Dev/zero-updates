@@ -37,11 +37,29 @@ def progress_bar(d, box, pct, color=ACCENT):
                     fill=color)
 
 
+def list_items(rows):
+    """What the list shows: an 'Update all' button first when any app has an update."""
+    n = sum(r['update'] for r in rows)
+    return ([{'all': n}] if n else []) + rows
+
+
+def update_all_button(d, y, n, selected):
+    box = (8, y + 1, W - 8, y + ROW_H - 3)
+    label = f"Update all ({n})"
+    if selected:
+        d.rounded_rectangle(box, radius=4, fill=ACCENT)
+    else:
+        d.rounded_rectangle(box, radius=4, outline=ACCENT)
+    d.text((W / 2, (box[1] + box[3]) / 2 + 1), label, font=F_BOLD,
+           fill=BG if selected else ACCENT, anchor='mm')
+
+
 def render_list(rows, sel, top, picked, status, check=None, empty=None):
-    """rows from registry.scan(); picked: packages ticked for update;
-    status: (text, color) for the header's right side; check: (stage, pct) while
-    checking; empty: (text, color) for an empty list."""
+    """rows from registry.scan(); sel/top index list_items(rows); picked: packages
+    ticked for update; status: (text, color) for the header's right side;
+    check: (stage, pct) while checking; empty: (text, color) for an empty list."""
     img, d = frame('Updates', *status)
+    items = list_items(rows)
     mid = (TOP + H - 17) / 2
     if check and not rows:
         d.text((W / 2, mid - 14), 'Checking for updates', font=F_BOLD, fill=FG, anchor='mm')
@@ -54,8 +72,11 @@ def render_list(rows, sel, top, picked, status, check=None, empty=None):
         text, col = empty or ('No store apps installed', DIM)
         d.text((W / 2, mid), clip(d, text, F_TEXT, W - 16), font=F_TEXT, fill=col,
                anchor='mm')
-    for i, row in enumerate(rows[top:top + ROWS]):
+    for i, row in enumerate(items[top:top + ROWS]):
         y = TOP + i * ROW_H
+        if 'all' in row:
+            update_all_button(d, y, row['all'], top + i == sel)
+            continue
         if top + i == sel:
             d.rectangle((0, y, W, y + ROW_H - 2), fill=SEL)
         cy = y + ROW_H // 2 - 1
@@ -79,12 +100,12 @@ def render_list(rows, sel, top, picked, status, check=None, empty=None):
         title_col = FG if row['update'] else DIM
         d.text((26, cy), clip(d, row['title'], F_TEXT, x - 34), font=F_TEXT, fill=title_col,
                anchor='lm')
-    if len(rows) > ROWS:
-        h = (H - TOP - 18) * ROWS / len(rows)
-        y0 = TOP + (H - TOP - 18 - h) * top / max(1, len(rows) - ROWS)
+    if len(items) > ROWS:
+        h = (H - TOP - 18) * ROWS / len(items)
+        y0 = TOP + (H - TOP - 18 - h) * top / max(1, len(items) - ROWS)
         d.rectangle((W - 2, y0, W, y0 + h), fill=FAINT)
     n = sum(r['update'] for r in rows)
-    footer(d, 'SPACE pick  ENTER update  A all  R check' if n else
+    footer(d, 'ENTER update  SPACE pick  R check' if n else
            'Please wait' if check else 'R check again')
     return img
 
