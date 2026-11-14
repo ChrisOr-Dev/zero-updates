@@ -1,6 +1,6 @@
 {
   "package_name": "zero-updates",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "app_name": "Updates",
   "bin_name": "zero-updates",
   "description": "Check for updates and install all AppStore app updates in one click",
